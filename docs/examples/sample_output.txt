@@ -1,0 +1,24 @@
+$ python main.py --provider claude
+
+Stock Market AI Agent (NSE)
+Provider : claude
+Universe : 45 stocks
+Type 'quit' to exit
+
+You: find IT sector stocks with P/E below 20 and RSI below 45
+Parsing query...
+Fetching data for 45 stocks (this may take ~30s)...
+Found 3 match(es). Ranking with claude...
+
+RANK   TICKER       SCORE    P/E      RSI      PRICE (₹)      REASON
+-----------------------------------------------------------------------------------------------
+1      INFY         87       12.4     36.2     ₹1,842         Strong balance sheet with zero debt and P/E
+                                                               well below sector average. Oversold RSI at
+                                                               36 signals a potential entry point.
+2      WIPRO        74       11.1     38.9     ₹498           Undervalued vs sector peers with consistent
+                                                               dividend history of ₹1/share.
+3      TECHM        61       18.3     43.1     ₹1,621         Reasonable valuation with improving order
+                                                               book; MACD crossover expected.
+
+You: quit
+Goodbye!
