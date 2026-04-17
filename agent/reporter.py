@@ -35,7 +35,7 @@ def format_signal_table(ranked: list, signals: list, stock_data: dict) -> str:
     if not ranked:
         return "No stocks matched your criteria. Try relaxing the filters."
 
-    sig_map = {s["ticker"]: s for s in signals}
+    sig_map = {s["ticker"]: s for s in signals if "ticker" in s}
     header = (
         f"\n{'RANK':<6} {'TICKER':<12} {'SCORE':<8} {'SIGNAL':<8} {'CONF':<6}"
         f"{'P/E':<8} {'RSI':<8} {'PRICE (₹)':<14} REASON"
@@ -105,7 +105,7 @@ def format_batch_signal_report(
         entry = sig.get("entry_zone", "N/A")
         stop = sig.get("stop_loss", "N/A")
         lines.append(
-            f"{ticker:<12} {sig.get('signal', 'N/A'):<8} {sig.get('confidence', 'N/A'):<6}"
+            f"{ticker:<12} {sig.get('signal', 'N/A'):<8} {sig.get('confidence', 'N/A'):<6} "
             f"{price_str:<14} {entry:<24} {stop}"
         )
 
