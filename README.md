@@ -16,6 +16,7 @@ A conversational AI agent that screens NSE stocks using fundamental and technica
 - **Fundamental filters** — P/E ratio, Market Cap (₹ Crores), Dividend Yield, Debt-to-Equity
 - **Technical filters** — RSI-14 (Wilder), 50-day MA, 200-day MA, MACD bullish crossover
 - **AI-ranked results** — composite score (0–100) with plain-English reasoning per stock
+- **Trading signals** — automatic BUY/SELL/HOLD with confidence score, ₹ entry zone, and stop-loss on every result
 - **4 LLM providers** — Claude, OpenAI, Perplexity, or Ollama (local, no API key)
 - **Free market data** — yfinance, no paid subscription needed
 - **Session cache** — stock data fetched once per session, follow-up queries are instant
@@ -147,22 +148,32 @@ Type 'quit' to exit
 You: find IT sector stocks with P/E below 20 and RSI below 45
 Parsing query...
 Fetching data for 45 stocks (this may take ~30s)...
-Found 3 match(es). Ranking with claude...
+Found 3 match(es). Ranking and generating signals with claude...
 
-RANK   TICKER       SCORE    P/E      RSI      PRICE (₹)      REASON
------------------------------------------------------------------------------------------------
-1      INFY         87       12.4     36.2     ₹1,842         Zero-debt balance sheet with P/E well
-                                                               below sector average. RSI at 36 signals
-                                                               an oversold entry opportunity.
-2      WIPRO        74       11.1     38.9     ₹498           Undervalued vs IT peers; consistent
-                                                               dividend of ₹1/share with improving
-                                                               operating margins.
-3      TECHM        61       18.3     43.1     ₹1,621         Reasonable valuation with improving
-                                                               deal pipeline; MACD crossover imminent.
+RANK  TICKER   SCORE  SIGNAL  CONF  P/E    RSI    PRICE (₹)   REASON
+1     INFY     87     BUY     82    12.4   36.2   ₹1,842      Zero-debt balance sheet, P/E below avg...
+2     WIPRO    74     HOLD    61    11.1   38.9   ₹498        Undervalued vs IT peers; consistent div...
+3     TECHM    55     SELL    70    18.3   43.1   ₹1,621      Weakening momentum, RSI overbought...
+
+── INFY — BUY (Confidence: 82/100) ──────────────────────────────────
+  Entry Zone : ₹1,800–₹1,850
+  Stop Loss  : ₹1,680
+  Analysis   : RSI recovering from oversold (36.2), price above 200 DMA,
+               P/E at 12.4 below sector average. Zero debt strengthens case.
+
+── WIPRO — HOLD (Confidence: 61/100) ────────────────────────────────
+  Entry Zone : ₹490–₹505
+  Stop Loss  : ₹460
+  Analysis   : Neutral momentum; wait for MACD confirmation before entering.
+
+── TECHM — SELL (Confidence: 70/100) ────────────────────────────────
+  Entry Zone : N/A
+  Stop Loss  : ₹1,500
+  Analysis   : RSI overbought at 43 with weakening MACD. Consider reducing exposure.
 
 You: show only large-cap stocks
 Parsing query...
-Found 2 match(es). Ranking with claude...
+Found 2 match(es). Ranking and generating signals with claude...
 
 You: why is INFY ranked first?
 Parsing query...
@@ -238,11 +249,12 @@ stock-market-agent/
 │   ├── chat.py        # Conversational REPL — orchestrates the pipeline
 │   ├── data.py        # yfinance fetcher — RSI, MACD, 50/200 DMA
 │   ├── llm.py         # LLM provider abstraction (Claude/OpenAI/Perplexity/Ollama)
-│   ├── reporter.py    # Terminal table formatter with ₹ values
-│   └── screener.py    # Deterministic filter engine (FilterCriteria dataclass)
+│   ├── reporter.py    # Terminal table + signal report formatter with ₹ values
+│   ├── screener.py    # Deterministic filter engine (FilterCriteria dataclass)
+│   └── signals.py     # SignalGenerator — BUY/SELL/HOLD via LLM analysis
 ├── config/
 │   └── config.yaml    # Default provider + model names
-├── tests/             # 34 unit tests (all mocked, no network calls)
+├── tests/             # 51 unit tests (all mocked, no network calls)
 ├── .env.example       # API key template
 ├── Dockerfile
 ├── main.py            # CLI entry point
