@@ -36,6 +36,11 @@ class LLMProvider:
     def __init__(self, provider: str, config: dict):
         self.provider = provider
         self.config = config
+        self._client = None
+        if provider == "claude":
+            self._client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
+        elif provider == "openai":
+            self._client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
 
     def analyze(self, stocks: list, query: str) -> list:
         """Rank and explain screened stocks. Returns list of dicts with rank/score/reason."""
@@ -65,11 +70,13 @@ class LLMProvider:
         match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
         if match:
             text = match.group(1)
-        return json.loads(text.strip())
+        try:
+            return json.loads(text.strip())
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"LLM returned non-JSON: {text[:200]!r}") from exc
 
     def _call_claude(self, prompt: str, system: str) -> str:
-        client = Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY", ""))
-        response = client.messages.create(
+        response = self._client.messages.create(
             model="claude-sonnet-4-6",
             max_tokens=2048,
             system=system,
@@ -78,8 +85,7 @@ class LLMProvider:
         return response.content[0].text
 
     def _call_openai(self, prompt: str, system: str) -> str:
-        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
-        response = client.chat.completions.create(
+        response = self._client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": system},
@@ -99,6 +105,7 @@ class LLMProvider:
                     {"role": "user", "content": prompt},
                 ],
             },
+            timeout=60,
         )
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"]
@@ -116,6 +123,7 @@ class LLMProvider:
                 ],
                 "stream": False,
             },
+            timeout=120,
         )
         response.raise_for_status()
         return response.json()["message"]["content"]
