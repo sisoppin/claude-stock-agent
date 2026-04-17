@@ -128,3 +128,94 @@ def test_fetch_universe_returns_cached_when_fresh(tmp_path, monkeypatch):
 
     mock_get.assert_not_called()
     assert result == ["RELIANCE", "TCS", "500032.BO"]
+
+
+def test_fetch_universe_fetches_nse_and_bse_when_cache_missing(tmp_path, monkeypatch):
+    monkeypatch.setattr("agent.data._CACHE_DIR", tmp_path)
+
+    nse_csv = "SYMBOL,NAME OF COMPANY\nRELIANCE,Reliance Industries\nTCS,Tata Consultancy\n"
+    bse_json = [
+        {"scrip_id": "RELIANCE", "Scripcode": "500325"},
+        {"scrip_id": "IRFC", "Scripcode": "543257"},
+    ]
+
+    def fake_get(url, **kwargs):
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = lambda: None
+        if "nseindia" in url:
+            mock_resp.text = nse_csv
+        else:
+            mock_resp.json.return_value = bse_json
+        return mock_resp
+
+    with patch("agent.data.requests.get", side_effect=fake_get):
+        result = fetch_universe(refresh=False)
+
+    assert "RELIANCE" in result
+    assert "RELIANCE.BO" not in result
+    assert "IRFC.BO" in result
+    assert "TCS" in result
+
+
+def test_fetch_universe_falls_back_when_both_sources_fail(tmp_path, monkeypatch):
+    monkeypatch.setattr("agent.data._CACHE_DIR", tmp_path)
+
+    with patch("agent.data.requests.get", side_effect=Exception("network error")):
+        result = fetch_universe(refresh=False)
+
+    assert result == list(NSE_UNIVERSE)
+
+
+def test_fetch_universe_refresh_ignores_fresh_cache(tmp_path, monkeypatch):
+    monkeypatch.setattr("agent.data._CACHE_DIR", tmp_path)
+
+    cache_file = tmp_path / "universe.json"
+    cache_file.write_text(json.dumps({
+        "tickers": ["STALE_TICKER"],
+        "fetched_at": datetime.datetime.utcnow().isoformat(),
+    }))
+
+    nse_csv = "SYMBOL,NAME OF COMPANY\nRELIANCE,Reliance Industries\n"
+
+    def fake_get(url, **kwargs):
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = lambda: None
+        if "nseindia" in url:
+            mock_resp.text = nse_csv
+        else:
+            mock_resp.json.return_value = []
+        return mock_resp
+
+    with patch("agent.data.requests.get", side_effect=fake_get):
+        result = fetch_universe(refresh=True)
+
+    assert "RELIANCE" in result
+    assert "STALE_TICKER" not in result
+
+
+def test_fetch_universe_stale_cache_triggers_refetch(tmp_path, monkeypatch):
+    monkeypatch.setattr("agent.data._CACHE_DIR", tmp_path)
+
+    old_time = (datetime.datetime.utcnow() - datetime.timedelta(hours=25)).isoformat()
+    cache_file = tmp_path / "universe.json"
+    cache_file.write_text(json.dumps({
+        "tickers": ["OLD_TICKER"],
+        "fetched_at": old_time,
+    }))
+
+    nse_csv = "SYMBOL,NAME OF COMPANY\nINFY,Infosys\n"
+
+    def fake_get(url, **kwargs):
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = lambda: None
+        if "nseindia" in url:
+            mock_resp.text = nse_csv
+        else:
+            mock_resp.json.return_value = []
+        return mock_resp
+
+    with patch("agent.data.requests.get", side_effect=fake_get):
+        result = fetch_universe(refresh=False)
+
+    assert "INFY" in result
+    assert "OLD_TICKER" not in result
