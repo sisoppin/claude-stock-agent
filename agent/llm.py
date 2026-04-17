@@ -80,8 +80,8 @@ class LLMProvider:
     def _extract_json(self, text: str):
         """Parse JSON from LLM response.
 
-        Handles: markdown code blocks, JS-style // and /* */ comments
-        (common output from small local models like phi3/mistral).
+        Handles: markdown code blocks, JS-style comments, trailing commas,
+        Python literals, and prose surrounding the JSON object/array.
         """
         # Strip markdown code fences
         match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
@@ -91,10 +91,29 @@ class LLMProvider:
         text = re.sub(r"/\*[\s\S]*?\*/", "", text)
         # Strip JS-style single-line comments // ...
         text = re.sub(r"//[^\n]*", "", text)
+        # Normalise Python literals → JSON
+        text = re.sub(r"\bNone\b", "null", text)
+        text = re.sub(r"\bTrue\b", "true", text)
+        text = re.sub(r"\bFalse\b", "false", text)
+        # Remove trailing commas before ] or }
+        text = re.sub(r",\s*([}\]])", r"\1", text)
+
+        cleaned = text.strip()
         try:
-            return json.loads(text.strip())
-        except json.JSONDecodeError as exc:
-            raise ValueError(f"LLM returned non-JSON: {text[:200]!r}") from exc
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            pass
+
+        # Last resort: extract first {...} or [...] from surrounding prose
+        for pattern in (r"(\{[\s\S]*\})", r"(\[[\s\S]*\])"):
+            m = re.search(pattern, cleaned)
+            if m:
+                try:
+                    return json.loads(m.group(1))
+                except json.JSONDecodeError:
+                    pass
+
+        raise ValueError(f"LLM returned non-JSON: {cleaned[:200]!r}")
 
     def _call_claude(self, prompt: str, system: str) -> str:
         response = self._client.messages.create(
