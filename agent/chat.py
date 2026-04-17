@@ -8,7 +8,7 @@ from agent.reporter import format_report
 def run_chat(llm: LLMProvider, tickers: list = None):
     """Start the conversational stock screening REPL."""
     universe = tickers or NSE_UNIVERSE
-    print(f"\nStock Market AI Agent (NSE)")
+    print("\nStock Market AI Agent (NSE)")
     print(f"Provider : {llm.provider}")
     print(f"Universe : {len(universe)} stocks")
     print("Type 'quit' to exit\n")
