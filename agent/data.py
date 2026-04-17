@@ -1,6 +1,12 @@
 import yfinance as yf
 import pandas as pd
 from typing import Optional
+import concurrent.futures
+import datetime
+import io
+import json
+import pathlib
+import requests
 
 NSE_UNIVERSE = [
     "RELIANCE", "TCS", "HDFCBANK", "INFY", "ICICIBANK",
@@ -13,6 +19,80 @@ NSE_UNIVERSE = [
     "ADANIPORTS", "DIVISLAB", "BAJAJ-AUTO", "BRITANNIA", "PIDILITIND",
     "GRASIM", "INDUSINDBK", "M&M", "TATACONSUM", "SHREECEM",
 ]
+
+_CACHE_DIR = pathlib.Path(__file__).parent.parent / "cache"
+_NSE_CSV_URL = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
+_BSE_API_URL = (
+    "https://api.bseindia.com/BseIndiaAPI/api/ListofScripData/w"
+    "?Group=&Scripcode=&industry=&segment=Equity&status=Active"
+)
+_HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; stock-agent/1.0)"}
+
+
+def fetch_universe(refresh: bool = False) -> list:
+    """Return all NSE+BSE equity tickers with daily caching.
+
+    NSE tickers are bare symbols (e.g. 'RELIANCE').
+    BSE-only tickers include exchange suffix (e.g. '543217.BO').
+    Pass refresh=True to ignore the cache and re-fetch.
+    """
+    _CACHE_DIR.mkdir(exist_ok=True)
+    universe_cache = _CACHE_DIR / "universe.json"
+    if not refresh and universe_cache.exists():
+        try:
+            data = json.loads(universe_cache.read_text())
+            age = datetime.datetime.utcnow() - datetime.datetime.fromisoformat(data["fetched_at"])
+            if age < datetime.timedelta(hours=24):
+                return data["tickers"]
+        except Exception:
+            pass
+
+    tickers = _fetch_nse_bse_tickers()
+    if tickers:
+        try:
+            universe_cache.write_text(json.dumps({
+                "tickers": tickers,
+                "fetched_at": datetime.datetime.utcnow().isoformat(),
+            }))
+        except Exception as e:
+            print(f"Warning: could not write universe cache: {e}")
+        return tickers
+
+    print("Warning: could not fetch NSE/BSE universe. Using built-in fallback list.")
+    return list(NSE_UNIVERSE)
+
+
+def _fetch_nse_bse_tickers() -> list:
+    nse = _fetch_nse_symbols()
+    bse = _fetch_bse_tickers(exclude=set(nse))
+    return nse + bse
+
+
+def _fetch_nse_symbols() -> list:
+    try:
+        resp = requests.get(_NSE_CSV_URL, headers=_HEADERS, timeout=30)
+        resp.raise_for_status()
+        df = pd.read_csv(io.StringIO(resp.text))
+        return df["SYMBOL"].dropna().str.strip().tolist()
+    except Exception:
+        return []
+
+
+def _fetch_bse_tickers(exclude: set) -> list:
+    try:
+        resp = requests.get(_BSE_API_URL, headers=_HEADERS, timeout=30)
+        resp.raise_for_status()
+        rows = resp.json()
+        if isinstance(rows, dict):
+            rows = rows.get("Table", [])
+        tickers = []
+        for item in rows:
+            scrip_id = str(item.get("scrip_id", "")).strip().upper()
+            if scrip_id and scrip_id not in exclude:
+                tickers.append(f"{scrip_id}.BO")
+        return tickers
+    except Exception:
+        return []
 
 
 def get_stock_data(ticker: str) -> Optional[dict]:

@@ -1,7 +1,10 @@
 import pandas as pd
 import numpy as np
 from unittest.mock import patch, MagicMock
-from agent.data import get_stock_data, _calculate_rsi, _calculate_macd, get_multiple_stocks, NSE_UNIVERSE
+from agent.data import (
+    get_stock_data, _calculate_rsi, _calculate_macd,
+    get_multiple_stocks, NSE_UNIVERSE, fetch_universe,
+)
 
 
 def _make_hist():
@@ -106,3 +109,22 @@ def test_get_multiple_stocks_skips_failures(mock_ticker):
 def test_nse_universe_is_non_empty_list():
     assert isinstance(NSE_UNIVERSE, list)
     assert len(NSE_UNIVERSE) >= 30
+
+
+import json
+import datetime
+
+
+def test_fetch_universe_returns_cached_when_fresh(tmp_path, monkeypatch):
+    monkeypatch.setattr("agent.data._CACHE_DIR", tmp_path)
+    cache_file = tmp_path / "universe.json"
+    cache_file.write_text(json.dumps({
+        "tickers": ["RELIANCE", "TCS", "500032.BO"],
+        "fetched_at": datetime.datetime.utcnow().isoformat(),
+    }))
+
+    with patch("agent.data.requests.get") as mock_get:
+        result = fetch_universe(refresh=False)
+
+    mock_get.assert_not_called()
+    assert result == ["RELIANCE", "TCS", "500032.BO"]
