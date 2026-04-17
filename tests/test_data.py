@@ -104,7 +104,9 @@ def test_calculate_macd_returns_two_floats():
 
 
 @patch("agent.data.yf.Ticker")
-def test_get_multiple_stocks_skips_failures(mock_ticker):
+def test_get_multiple_stocks_skips_failures(mock_ticker, tmp_path, monkeypatch):
+    monkeypatch.setattr("agent.data._CACHE_DIR", tmp_path)
+
     good = MagicMock()
     good.info = _make_info()
     good.history.return_value = _make_hist()
@@ -116,6 +118,61 @@ def test_get_multiple_stocks_skips_failures(mock_ticker):
     mock_ticker.side_effect = [good, bad, good]
 
     results = get_multiple_stocks(["RELIANCE", "BADSTOCK", "TCS"])
+    assert len(results) == 2
+    assert all(r["ticker"] in ("RELIANCE", "TCS") for r in results)
+
+
+@patch("agent.data.yf.Ticker")
+def test_get_multiple_stocks_writes_and_reads_daily_cache(mock_ticker, tmp_path, monkeypatch):
+    monkeypatch.setattr("agent.data._CACHE_DIR", tmp_path)
+
+    mock_t = MagicMock()
+    mock_t.info = _make_info()
+    mock_t.history.return_value = _make_hist()
+    mock_ticker.return_value = mock_t
+
+    result1 = get_multiple_stocks(["RELIANCE", "TCS"], refresh=False)
+    assert len(result1) == 2
+    assert mock_ticker.call_count == 2
+
+    mock_ticker.reset_mock()
+
+    result2 = get_multiple_stocks(["RELIANCE", "TCS"], refresh=False)
+    assert len(result2) == 2
+    mock_ticker.assert_not_called()
+
+
+@patch("agent.data.yf.Ticker")
+def test_get_multiple_stocks_refresh_bypasses_cache(mock_ticker, tmp_path, monkeypatch):
+    monkeypatch.setattr("agent.data._CACHE_DIR", tmp_path)
+
+    mock_t = MagicMock()
+    mock_t.info = _make_info()
+    mock_t.history.return_value = _make_hist()
+    mock_ticker.return_value = mock_t
+
+    get_multiple_stocks(["RELIANCE"], refresh=False)
+    mock_ticker.reset_mock()
+
+    get_multiple_stocks(["RELIANCE"], refresh=True)
+    assert mock_ticker.call_count == 1
+
+
+@patch("agent.data.yf.Ticker")
+def test_get_multiple_stocks_skips_failures_parallel(mock_ticker, tmp_path, monkeypatch):
+    monkeypatch.setattr("agent.data._CACHE_DIR", tmp_path)
+
+    good = MagicMock()
+    good.info = _make_info()
+    good.history.return_value = _make_hist()
+
+    bad = MagicMock()
+    bad.info = {}
+    bad.history.return_value = pd.DataFrame()
+
+    mock_ticker.side_effect = [good, bad, good]
+
+    results = get_multiple_stocks(["RELIANCE", "BADSTOCK", "TCS"], refresh=False)
     assert len(results) == 2
     assert all(r["ticker"] in ("RELIANCE", "TCS") for r in results)
 

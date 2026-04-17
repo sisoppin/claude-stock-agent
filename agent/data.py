@@ -153,11 +153,33 @@ def _calculate_macd(close: pd.Series):
     return float(macd.iloc[-1]), float(signal.iloc[-1])
 
 
-def get_multiple_stocks(tickers: list) -> list:
-    """Fetch data for multiple stocks, silently skipping failures."""
-    results = []
-    for ticker in tickers:
-        data = get_stock_data(ticker)
-        if data:
-            results.append(data)
-    return results
+def get_multiple_stocks(tickers: list, refresh: bool = False) -> list:
+    """Fetch data for multiple stocks with daily caching and parallel workers.
+
+    Results are cached in cache/stocks_YYYY-MM-DD.json.
+    Pass refresh=True to bypass cache and re-fetch.
+    """
+    import concurrent.futures
+
+    _CACHE_DIR.mkdir(exist_ok=True)
+    today = datetime.date.today().isoformat()
+    cache_file = _CACHE_DIR / f"stocks_{today}.json"
+
+    if not refresh and cache_file.exists():
+        try:
+            data = json.loads(cache_file.read_text())
+            return list(data.values())
+        except Exception:
+            pass
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+        results = list(executor.map(get_stock_data, tickers))
+
+    stocks = [r for r in results if r is not None]
+
+    try:
+        cache_file.write_text(json.dumps({s["ticker"]: s for s in stocks}, default=str))
+    except Exception as e:
+        print(f"Warning: could not write stock cache: {e}")
+
+    return stocks
