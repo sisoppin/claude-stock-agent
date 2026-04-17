@@ -26,6 +26,9 @@ def get_stock_data(ticker: str) -> Optional[dict]:
         if hist.empty or not info:
             return None
 
+        if len(hist) < 200:
+            return None
+
         close = hist["Close"]
         rsi = _calculate_rsi(close)
         ma50 = float(close.rolling(50).mean().iloc[-1])
@@ -56,8 +59,8 @@ def get_stock_data(ticker: str) -> Optional[dict]:
 
 def _calculate_rsi(close: pd.Series, period: int = 14) -> float:
     delta = close.diff()
-    gain = delta.clip(lower=0).rolling(period).mean()
-    loss = (-delta.clip(upper=0)).rolling(period).mean()
+    gain = delta.clip(lower=0).ewm(com=period - 1, min_periods=period, adjust=False).mean()
+    loss = (-delta.clip(upper=0)).ewm(com=period - 1, min_periods=period, adjust=False).mean()
     rs = gain / loss
     rsi = 100 - (100 / (1 + rs))
     return round(float(rsi.iloc[-1]), 2)
