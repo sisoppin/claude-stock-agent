@@ -86,6 +86,54 @@ ollama_model: llama3   # or: mistral, gemma2, phi3, etc.
 
 ---
 
+## Trading Signals
+
+Every screening result automatically includes a **BUY / SELL / HOLD signal** with confidence score (0–100), AI-suggested entry price zone (₹), and stop-loss level.
+
+Signals are based on **both technical and fundamental data**: RSI, MACD, 50/200 DMA, P/E ratio, debt-to-equity, and dividend yield.
+
+### In Chat (automatic with every screen)
+
+```
+You: find oversold IT stocks with P/E below 20
+
+RANK  TICKER   SCORE  SIGNAL  CONF  P/E    RSI    PRICE (₹)   REASON
+1     INFY     87     BUY     82    12.4   36.2   ₹1,842      Strong fundamentals...
+2     WIPRO    74     HOLD    61    11.1   38.9   ₹498        Undervalued but...
+
+── INFY — BUY (Confidence: 82/100) ──────────────────────────────────
+  Entry Zone : ₹1,800–₹1,850
+  Stop Loss  : ₹1,680
+  Analysis   : RSI recovering from oversold (36.2), price above 200 DMA,
+               P/E at 12.4 below sector average. Zero debt strengthens case.
+
+── WIPRO — HOLD (Confidence: 61/100) ────────────────────────────────
+  Entry Zone : ₹490–₹505
+  Stop Loss  : ₹460
+  Analysis   : Neutral momentum; wait for MACD confirmation before entering.
+```
+
+### Batch Scan (all 45 stocks, no filter)
+
+```bash
+python main.py --mode signals
+python main.py --mode signals --provider ollama
+```
+
+Output:
+```
+STOCK SIGNAL REPORT — 2026-04-17  (Provider: claude)
+============================================================
+TICKER       SIGNAL  CONF   PRICE (₹)      ENTRY ZONE               STOP LOSS
+RELIANCE     BUY     79     ₹2,800         ₹2,750–₹2,810            ₹2,580
+TCS          HOLD    65     ₹3,421         ₹3,380–₹3,430            ₹3,200
+HDFCBANK     BUY     88     ₹1,720         ₹1,700–₹1,730            ₹1,580
+```
+
+> **Disclaimer:** Signals are AI-generated for research purposes only. Not financial advice. Always verify with your own analysis before making investment decisions.
+
+---
+
 ## Example Session
 
 ```
