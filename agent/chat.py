@@ -1,16 +1,16 @@
 import dataclasses
 import sys
-from agent.data import get_multiple_stocks, NSE_UNIVERSE
+from agent.data import fetch_universe, get_multiple_stocks
 from agent.screener import screen_stocks, FilterCriteria
 from agent.llm import LLMProvider
 from agent.reporter import format_signal_table, format_signal_detail
 from agent.signals import SignalGenerator
 
 
-def run_chat(llm: LLMProvider, tickers: list = None):
+def run_chat(llm: LLMProvider, refresh: bool = False):
     """Start the conversational stock screening REPL."""
-    universe = tickers or NSE_UNIVERSE
-    print("\nStock Market AI Agent (NSE)")
+    universe = fetch_universe(refresh=refresh)
+    print("\nStock Market AI Agent (NSE+BSE)")
     print(f"Provider : {llm.provider}")
     print(f"Universe : {len(universe)} stocks")
     print("Type 'quit' to exit\n")
@@ -39,9 +39,9 @@ def run_chat(llm: LLMProvider, tickers: list = None):
             criteria = FilterCriteria(**clean)
 
             if stock_cache is None:
-                print(f"Fetching data for {len(universe)} stocks (this may take ~30s)...")
-                fetched = get_multiple_stocks(universe)
-                stock_cache = {s["ticker"]: s for s in fetched}
+                print(f"Fetching data for {len(universe)} stocks (first run ~5 min, cached runs instant)...")
+                stocks = get_multiple_stocks(universe, refresh=False)
+                stock_cache = {s["ticker"]: s for s in stocks}
             stocks = list(stock_cache.values())
 
             matched = screen_stocks(stocks, criteria)
