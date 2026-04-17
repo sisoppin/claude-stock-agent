@@ -18,6 +18,9 @@ htmlcov/
 # Git worktrees
 .worktrees/
 
+# Stock data cache
+cache/
+
 # IDE
 .vscode/
 .idea/
