@@ -1,6 +1,7 @@
 import yfinance as yf
 import pandas as pd
 from typing import Optional
+import concurrent.futures
 import datetime
 import io
 import json
@@ -159,8 +160,6 @@ def get_multiple_stocks(tickers: list, refresh: bool = False) -> list:
     Results are cached in cache/stocks_YYYY-MM-DD.json.
     Pass refresh=True to bypass cache and re-fetch.
     """
-    import concurrent.futures
-
     _CACHE_DIR.mkdir(exist_ok=True)
     today = datetime.date.today().isoformat()
     cache_file = _CACHE_DIR / f"stocks_{today}.json"
