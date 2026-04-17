@@ -95,7 +95,7 @@ def _fetch_bse_tickers(exclude: set) -> list:
 
 
 def get_stock_data(ticker: str) -> Optional[dict]:
-    """Fetch fundamental and technical data for a single NSE stock."""
+    """Fetch fundamental and technical data for a single NSE or BSE stock."""
     symbol = ticker if "." in ticker else f"{ticker}.NS"
     try:
         stock = yf.Ticker(symbol)
