@@ -23,11 +23,14 @@ For each stock output:
 4. stop_loss: ₹ price where the thesis is invalidated
 5. reasoning: 2-3 sentences combining technical + fundamental factors, reference ₹ values
 
-Return ONLY valid JSON — no markdown, no explanation:
-[{
-    "ticker": "X", "signal": "BUY", "confidence": 82,
-    "entry_zone": "₹1,800–₹1,850", "stop_loss": "₹1,680", "reasoning": "..."
-}]"""
+Return ONLY valid JSON — no markdown, no explanation. One object per stock, always an array:
+[
+  {"ticker": "X", "signal": "BUY", "confidence": 82, "entry_zone": "₹1,800–₹1,850",
+   "stop_loss": "₹1,680", "reasoning": "..."},
+  {"ticker": "Y", "signal": "SELL", "confidence": 70, "entry_zone": "N/A",
+   "stop_loss": "₹500", "reasoning": "..."}
+]
+(confidence is an integer 0-100)"""
 
 
 class SignalGenerator:

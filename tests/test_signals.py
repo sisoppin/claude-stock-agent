@@ -13,6 +13,11 @@ SAMPLE_STOCKS = [
         "macd_bullish": False, "ma50": 2750.0, "ma200": 2600.0,
         "dividend_yield": 0.5, "debt_to_equity": 35.2, "sector": "Energy",
     },
+    {
+        "ticker": "TATASTEEL", "pe_ratio": 8.1, "rsi": 74.3, "price": 158.0,
+        "macd_bullish": False, "ma50": 162.0, "ma200": 145.0,
+        "dividend_yield": 1.2, "debt_to_equity": 1.8, "sector": "Metals",
+    },
 ]
 
 SAMPLE_SIGNALS = [
@@ -25,6 +30,11 @@ SAMPLE_SIGNALS = [
         "ticker": "RELIANCE", "signal": "HOLD", "confidence": 55,
         "entry_zone": "₹2,750–₹2,810", "stop_loss": "₹2,580",
         "reasoning": "Neutral momentum; awaiting MACD confirmation above signal line.",
+    },
+    {
+        "ticker": "TATASTEEL", "signal": "SELL", "confidence": 71,
+        "entry_zone": "N/A", "stop_loss": "₹140",
+        "reasoning": "RSI overbought at 74, breaking below 50 DMA with high D/E ratio.",
     },
 ]
 
@@ -39,7 +49,7 @@ def _mock_llm(response):
 def test_generate_returns_signal_list():
     gen = SignalGenerator(_mock_llm(SAMPLE_SIGNALS))
     result = gen.generate(SAMPLE_STOCKS)
-    assert len(result) == 2
+    assert len(result) == 3
     assert result[0]["ticker"] == "INFY"
     assert result[0]["signal"] == "BUY"
     assert result[0]["confidence"] == 82
@@ -76,8 +86,14 @@ def test_generate_signal_values_are_valid():
 
 def test_generate_uses_signal_system_prompt():
     from agent.signals import SIGNAL_SYSTEM_PROMPT
+    from unittest.mock import ANY
     assert "BUY" in SIGNAL_SYSTEM_PROMPT
     assert "SELL" in SIGNAL_SYSTEM_PROMPT
     assert "HOLD" in SIGNAL_SYSTEM_PROMPT
     assert "stop" in SIGNAL_SYSTEM_PROMPT.lower()
     assert "entry" in SIGNAL_SYSTEM_PROMPT.lower()
+    # Verify it is actually passed to _complete as the system argument
+    llm = _mock_llm(SAMPLE_SIGNALS)
+    gen = SignalGenerator(llm)
+    gen.generate(SAMPLE_STOCKS)
+    llm._complete.assert_called_once_with(ANY, SIGNAL_SYSTEM_PROMPT)
