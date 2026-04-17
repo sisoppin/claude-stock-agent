@@ -75,6 +75,20 @@ def test_get_stock_data_appends_ns_suffix(mock_ticker):
     mock_ticker.assert_called_once_with("RELIANCE.NS")
 
 
+@patch("agent.data.yf.Ticker")
+def test_get_stock_data_uses_suffix_as_is_for_bse(mock_ticker):
+    mock_t = MagicMock()
+    mock_t.info = _make_info()
+    mock_t.history.return_value = _make_hist()
+    mock_ticker.return_value = mock_t
+
+    result = get_stock_data("500032.BO")
+
+    mock_ticker.assert_called_once_with("500032.BO")
+    assert result is not None
+    assert result["ticker"] == "500032.BO"
+
+
 def test_calculate_rsi_returns_value_between_0_and_100():
     prices = pd.Series([100, 102, 101, 103, 105, 104, 106, 108, 107, 109,
                         111, 110, 112, 114, 113, 115, 117, 116, 118, 120])
