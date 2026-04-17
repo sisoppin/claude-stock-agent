@@ -15,6 +15,9 @@ build/
 .coverage
 htmlcov/
 
+# Git worktrees
+.worktrees/
+
 # IDE
 .vscode/
 .idea/
