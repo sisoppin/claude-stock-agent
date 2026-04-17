@@ -1,4 +1,3 @@
-import pytest
 from agent.screener import screen_stocks, FilterCriteria
 
 # market_cap in rupees: 1 crore = 1e7 rupees
@@ -73,6 +72,15 @@ def test_screen_above_ma50():
     assert "INFY" in tickers
     assert "RELIANCE" in tickers
     assert "WIPRO" not in tickers
+
+
+def test_screen_below_ma50():
+    # WIPRO: price 498 < ma50 510 → passes below-MA50 filter
+    result = screen_stocks(SAMPLE_STOCKS, FilterCriteria(above_ma50=False))
+    tickers = [s["ticker"] for s in result]
+    assert "WIPRO" in tickers
+    assert "INFY" not in tickers
+    assert "RELIANCE" not in tickers
 
 
 def test_screen_above_ma200():
