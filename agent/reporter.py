@@ -1,3 +1,6 @@
+import math
+
+
 def format_report(ranked_stocks: list, stock_data: dict) -> str:
     """Render ranked stocks as a terminal table with ₹ values."""
     if not ranked_stocks:
@@ -15,8 +18,8 @@ def format_report(ranked_stocks: list, stock_data: dict) -> str:
         rsi = data.get("rsi")
         price = data.get("price", 0)
 
-        pe_str = f"{pe:.1f}" if isinstance(pe, (int, float)) else "N/A"
-        rsi_str = f"{rsi:.1f}" if isinstance(rsi, (int, float)) else "N/A"
+        pe_str = f"{pe:.1f}" if isinstance(pe, (int, float)) and not math.isnan(pe) else "N/A"
+        rsi_str = f"{rsi:.1f}" if isinstance(rsi, (int, float)) and not math.isnan(rsi) else "N/A"
         price_str = f"₹{price:,.0f}" if price is not None else "N/A"
         reason = item.get("reason", "")[:120]
 

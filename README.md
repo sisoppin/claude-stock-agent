@@ -1,6 +1,6 @@
 # Stock Market AI Agent
 
-A conversational AI agent that screens NSE/BSE stocks using fundamental and technical filters, then ranks candidates with AI-generated reasoning.
+A conversational AI agent that screens NSE stocks using fundamental and technical filters, then ranks candidates with AI-generated reasoning.
 
 ![CI](https://github.com/YOUR_USERNAME/stock-market-agent/actions/workflows/ci.yml/badge.svg)
 
@@ -105,11 +105,11 @@ pytest -v
 ```
 User Chat Input
     ↓
-chat.py  — NL query → FilterCriteria (via LLM)
+chat.py  — NL query → FilterCriteria (via LLM parse_query)
     ↓
-screener.py — deterministic filter (no LLM)
+data.py  — yfinance NSE data + RSI/MACD/MA (cached after first fetch)
     ↓
-data.py  — yfinance NSE data + RSI/MACD/MA
+screener.py — deterministic filter, no LLM
     ↓
 llm.py   — rank + explain (Claude/OpenAI/Perplexity/Ollama)
     ↓

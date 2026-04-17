@@ -17,7 +17,7 @@ def main():
         config = yaml.safe_load(f)
 
     parser = argparse.ArgumentParser(
-        description="Stock Market AI Agent — NSE/BSE Screener"
+        description="Stock Market AI Agent — NSE Screener"
     )
     parser.add_argument(
         "--provider",

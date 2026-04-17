@@ -5,7 +5,7 @@ import requests
 from anthropic import Anthropic
 from openai import OpenAI
 
-ANALYZE_SYSTEM_PROMPT = """You are a stock market analyst specializing in Indian equities (NSE/BSE).
+ANALYZE_SYSTEM_PROMPT = """You are a stock market analyst specializing in Indian equities (NSE).
 You receive a list of stocks that passed screening filters, with their metrics.
 Your job:
 1. Rank them from best to worst investment candidate (1 = best)
