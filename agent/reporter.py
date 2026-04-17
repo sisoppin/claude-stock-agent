@@ -17,7 +17,7 @@ def format_report(ranked_stocks: list, stock_data: dict) -> str:
 
         pe_str = f"{pe:.1f}" if isinstance(pe, (int, float)) else "N/A"
         rsi_str = f"{rsi:.1f}" if isinstance(rsi, (int, float)) else "N/A"
-        price_str = f"₹{price:,.0f}" if price else "N/A"
+        price_str = f"₹{price:,.0f}" if price is not None else "N/A"
         reason = item.get("reason", "")[:60]
 
         lines.append(
