@@ -113,6 +113,7 @@ class LLMProvider:
     def _call_ollama(self, prompt: str, system: str) -> str:
         url = self.config.get("ollama_url", "http://localhost:11434")
         model = self.config.get("ollama_model", "llama3")
+        timeout = self.config.get("ollama_timeout", 300)
         response = requests.post(
             f"{url}/api/chat",
             json={
@@ -123,7 +124,7 @@ class LLMProvider:
                 ],
                 "stream": False,
             },
-            timeout=120,
+            timeout=timeout,
         )
         response.raise_for_status()
         return response.json()["message"]["content"]

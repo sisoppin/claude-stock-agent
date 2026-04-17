@@ -3,4 +3,5 @@ claude_model: claude-sonnet-4-6
 openai_model: gpt-4o
 perplexity_model: sonar-pro
 ollama_url: http://localhost:11434
-ollama_model: llama3
+ollama_model: qwen2.5:7b
+ollama_timeout: 300
