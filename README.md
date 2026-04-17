@@ -1,6 +1,6 @@
 # Stock Market AI Agent
 
-A conversational AI agent that screens NSE stocks using fundamental and technical filters, then ranks candidates with AI-generated reasoning in ₹.
+A conversational AI agent that screens NSE stocks, ranks candidates with AI-generated reasoning, and automatically generates **BUY / SELL / HOLD trading signals** with entry price zones and stop-loss levels — all in ₹.
 
 > **Replace `YOUR_USERNAME`** in the badge URL below before publishing.
 
@@ -48,14 +48,13 @@ cp .env.example .env
 ### 3. Run
 
 ```bash
-# Default provider (Claude, set in config/config.yaml)
+# Chat mode — conversational screener with signals (default)
 python main.py
+python main.py --provider ollama    # use local model, no API cost
 
-# Choose a specific provider
-python main.py --provider claude
-python main.py --provider openai
-python main.py --provider perplexity
-python main.py --provider ollama
+# Batch signal scan — BUY/SELL/HOLD for all 45 stocks at once
+python main.py --mode signals
+python main.py --mode signals --provider claude
 ```
 
 ---
@@ -231,10 +230,13 @@ data.py  — yfinance NSE data + RSI/MACD/MA (fetched once, cached per session)
     ↓
 screener.py — deterministic filter, no LLM, pure Python
     ↓
-llm.py   — rank + explain (Claude / OpenAI / Perplexity / Ollama)
+llm.py → analyze()         ranked list with scores + reasoning
+signals.py → generate()    BUY/SELL/HOLD + entry zone + stop-loss (₹)
     ↓
-reporter.py — terminal table with ₹ values
+reporter.py — merged signal table + per-stock detail blocks
 ```
+
+**Batch mode** (`--mode signals`) skips the screener — fetches all 45 stocks and runs `signals.py` directly.
 
 `data.py` and `screener.py` have zero LLM dependency.
 `llm.py` is the only file aware of provider differences.
@@ -282,9 +284,14 @@ ollama_model: llama3
 
 ```bash
 docker build -t stock-agent .
+
+# Chat mode
 docker run -it --env-file .env stock-agent
 
-# With a specific provider
+# Batch signal scan
+docker run -it --env-file .env stock-agent python main.py --mode signals
+
+# Specific provider
 docker run -it --env-file .env stock-agent python main.py --provider openai
 ```
 
