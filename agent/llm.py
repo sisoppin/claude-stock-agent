@@ -18,11 +18,12 @@ Return ONLY valid JSON — no markdown, no explanation:
 PARSE_SYSTEM_PROMPT = """Output ONLY a valid JSON object. No comments. No explanation. No text before or after.
 
 Fill in this exact template — use null for fields not mentioned in the query:
-{"max_pe": null, "min_pe": null, "min_market_cap_cr": null, "max_market_cap_cr": null,
+{"ticker_search": null, "max_pe": null, "min_pe": null, "min_market_cap_cr": null, "max_market_cap_cr": null,
  "min_dividend_yield": null, "max_debt_to_equity": null, "max_rsi": null, "min_rsi": null,
  "above_ma50": null, "above_ma200": null, "macd_bullish": null, "sector": null}
 
 Mappings:
+- stock name or ticker like "apollo", "tcs", "reliance" → ticker_search: "apollo"
 - "large-cap" → min_market_cap_cr: 20000
 - "mid-cap" → min_market_cap_cr: 5000, max_market_cap_cr: 20000
 - "small-cap" → max_market_cap_cr: 5000
@@ -39,7 +40,7 @@ Mappings:
 - "dividend above X%" → min_dividend_yield: X
 
 Example — "IT sector stocks with P/E below 20 and RSI below 45":
-{"max_pe": 20, "min_pe": null, "min_market_cap_cr": null, "max_market_cap_cr": null,
+{"ticker_search": null, "max_pe": 20, "min_pe": null, "min_market_cap_cr": null, "max_market_cap_cr": null,
  "min_dividend_yield": null, "max_debt_to_equity": null, "max_rsi": 45, "min_rsi": null,
  "above_ma50": null, "above_ma200": null, "macd_bullish": null, "sector": "Technology"}"""
 

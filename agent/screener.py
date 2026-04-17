@@ -4,6 +4,7 @@ from typing import Optional
 
 @dataclass
 class FilterCriteria:
+    ticker_search: Optional[str] = None
     max_pe: Optional[float] = None
     min_pe: Optional[float] = None
     min_market_cap_cr: Optional[float] = None   # in crores (1 crore = 1e7 rupees)
@@ -33,7 +34,10 @@ def _matches(stock: dict, criteria: FilterCriteria) -> bool:
     rsi = stock.get("rsi")
     d_to_e = stock.get("debt_to_equity")
 
+    needle = criteria.ticker_search.lower() if criteria.ticker_search else None
     checks = [
+        needle is None or needle in stock.get("ticker", "").lower()
+            or needle in stock.get("name", "").lower(),
         criteria.max_pe is None or (pe is not None and pe <= criteria.max_pe),
         criteria.min_pe is None or (pe is not None and pe >= criteria.min_pe),
         (criteria.min_market_cap_cr is None
