@@ -77,7 +77,7 @@ class LLMProvider:
 
     def _call_claude(self, prompt: str, system: str) -> str:
         response = self._client.messages.create(
-            model="claude-sonnet-4-6",
+            model=self.config.get("claude_model", "claude-sonnet-4-6"),
             max_tokens=2048,
             system=system,
             messages=[{"role": "user", "content": prompt}],
@@ -86,7 +86,7 @@ class LLMProvider:
 
     def _call_openai(self, prompt: str, system: str) -> str:
         response = self._client.chat.completions.create(
-            model="gpt-4o",
+            model=self.config.get("openai_model", "gpt-4o"),
             messages=[
                 {"role": "system", "content": system},
                 {"role": "user", "content": prompt},
@@ -99,7 +99,7 @@ class LLMProvider:
             "https://api.perplexity.ai/chat/completions",
             headers={"Authorization": f"Bearer {os.environ.get('PERPLEXITY_API_KEY', '')}"},
             json={
-                "model": "sonar-pro",
+                "model": self.config.get("perplexity_model", "sonar-pro"),
                 "messages": [
                     {"role": "system", "content": system},
                     {"role": "user", "content": prompt},
