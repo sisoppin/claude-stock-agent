@@ -1,4 +1,5 @@
 import argparse
+import pathlib
 
 import yaml
 from dotenv import load_dotenv
@@ -6,11 +7,13 @@ from dotenv import load_dotenv
 from agent.llm import get_provider
 from agent.chat import run_chat
 
+_ROOT = pathlib.Path(__file__).parent
+
 
 def main():
     load_dotenv()
 
-    with open("config/config.yaml") as f:
+    with open(_ROOT / "config" / "config.yaml") as f:
         config = yaml.safe_load(f)
 
     parser = argparse.ArgumentParser(

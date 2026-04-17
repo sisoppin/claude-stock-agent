@@ -1,3 +1,4 @@
+import dataclasses
 import sys
 from agent.data import get_multiple_stocks, NSE_UNIVERSE
 from agent.screener import screen_stocks, FilterCriteria
@@ -13,7 +14,7 @@ def run_chat(llm: LLMProvider, tickers: list = None):
     print(f"Universe : {len(universe)} stocks")
     print("Type 'quit' to exit\n")
 
-    stock_cache = {}
+    stock_cache = None
 
     while True:
         try:
@@ -31,16 +32,16 @@ def run_chat(llm: LLMProvider, tickers: list = None):
         try:
             print("Parsing query...")
             criteria_dict = llm.parse_query(query)
-            # Remove None values so FilterCriteria uses its own defaults
-            clean = {k: v for k, v in criteria_dict.items() if v is not None}
+            # Remove None values and unknown keys so FilterCriteria uses its own defaults
+            valid_fields = {f.name for f in dataclasses.fields(FilterCriteria)}
+            clean = {k: v for k, v in criteria_dict.items() if v is not None and k in valid_fields}
             criteria = FilterCriteria(**clean)
 
-            if not stock_cache:
+            if stock_cache is None:
                 print(f"Fetching data for {len(universe)} stocks (this may take ~30s)...")
-                stocks = get_multiple_stocks(universe)
-                stock_cache = {s["ticker"]: s for s in stocks}
-            else:
-                stocks = list(stock_cache.values())
+                fetched = get_multiple_stocks(universe)
+                stock_cache = {s["ticker"]: s for s in fetched}
+            stocks = list(stock_cache.values())
 
             matched = screen_stocks(stocks, criteria)
 
