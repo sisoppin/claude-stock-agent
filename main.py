@@ -5,7 +5,7 @@ import pathlib
 import yaml
 from dotenv import load_dotenv
 
-from agent.data import get_multiple_stocks, NSE_UNIVERSE
+from agent.data import fetch_universe, get_multiple_stocks
 from agent.llm import get_provider
 from agent.reporter import format_batch_signal_report
 from agent.signals import SignalGenerator
@@ -21,7 +21,7 @@ def main():
         config = yaml.safe_load(f)
 
     parser = argparse.ArgumentParser(
-        description="Stock Market AI Agent — NSE Screener + Signal Generator"
+        description="Stock Market AI Agent — NSE+BSE Screener + Signal Generator"
     )
     parser.add_argument(
         "--provider",
@@ -35,24 +35,30 @@ def main():
         default="chat",
         help="chat: conversational REPL (default), signals: batch scan all stocks",
     )
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Force re-fetch universe and stock data, ignoring today's cache",
+    )
     args = parser.parse_args()
 
     config["provider"] = args.provider
     llm = get_provider(args.provider, config)
 
     if args.mode == "signals":
-        _run_batch_signals(llm)
+        _run_batch_signals(llm, refresh=args.refresh)
     else:
-        run_chat(llm)
+        run_chat(llm, refresh=args.refresh)
 
 
-def _run_batch_signals(llm):
-    """Fetch all NSE stocks and generate signals for each."""
-    print(f"\nBatch Signal Scan — {len(NSE_UNIVERSE)} NSE stocks")
+def _run_batch_signals(llm, refresh: bool = False):
+    """Fetch all NSE+BSE stocks and generate signals for each."""
+    universe = fetch_universe(refresh=refresh)
+    print(f"\nBatch Signal Scan — {len(universe)} NSE+BSE stocks")
     print(f"Provider : {llm.provider}")
-    print("Fetching data (this may take ~60s)...\n")
+    print("Fetching data (first run ~5 min, cached runs instant)...\n")
 
-    stocks = get_multiple_stocks(NSE_UNIVERSE)
+    stocks = get_multiple_stocks(universe, refresh=refresh)
     stock_data = {s["ticker"]: s for s in stocks}
 
     if not stocks:
