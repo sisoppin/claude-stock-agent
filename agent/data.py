@@ -1,7 +1,6 @@
 import yfinance as yf
 import pandas as pd
 from typing import Optional
-import concurrent.futures
 import datetime
 import io
 import json
