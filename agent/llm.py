@@ -65,7 +65,12 @@ class LLMProvider:
         """Translate natural language query into FilterCriteria field dict."""
         prompt = f'Parse this stock screening query: "{query}"'
         text = self._complete(prompt, PARSE_SYSTEM_PROMPT)
-        return self._extract_json(text)
+        try:
+            return self._extract_json(text)
+        except ValueError:
+            # Small local models sometimes return prose for short/ambiguous queries.
+            # Best-effort: treat the whole query as a name/ticker search.
+            return {"ticker_search": query}
 
     def _complete(self, prompt: str, system: str) -> str:
         if self.provider == "claude":
