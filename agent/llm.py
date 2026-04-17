@@ -15,21 +15,33 @@ Your job:
 Return ONLY valid JSON — no markdown, no explanation:
 [{"ticker": "X", "rank": 1, "score": 87, "reason": "..."}]"""
 
-PARSE_SYSTEM_PROMPT = """You are a JSON parser for stock screening queries.
-Return ONLY valid JSON with these optional keys (null for unspecified):
+PARSE_SYSTEM_PROMPT = """Output ONLY a valid JSON object. No comments. No explanation. No text before or after.
+
+Fill in this exact template — use null for fields not mentioned in the query:
 {"max_pe": null, "min_pe": null, "min_market_cap_cr": null, "max_market_cap_cr": null,
  "min_dividend_yield": null, "max_debt_to_equity": null, "max_rsi": null, "min_rsi": null,
  "above_ma50": null, "above_ma200": null, "macd_bullish": null, "sector": null}
 
-Rules:
+Mappings:
 - "large-cap" → min_market_cap_cr: 20000
-- "mid-cap"   → min_market_cap_cr: 5000, max_market_cap_cr: 20000
+- "mid-cap" → min_market_cap_cr: 5000, max_market_cap_cr: 20000
 - "small-cap" → max_market_cap_cr: 5000
-- "IT sector" or "technology" → sector: "Technology"
-- "P/E below 15" → max_pe: 15
-- "RSI below 40" → max_rsi: 40
+- "IT" or "technology" or "tech" → sector: "Technology"
+- "banking" or "bank" or "BFSI" → sector: "Financial Services"
+- "pharma" or "healthcare" → sector: "Healthcare"
+- "energy" or "oil" or "gas" → sector: "Energy"
+- "P/E below X" → max_pe: X
+- "RSI below X" → max_rsi: X
+- "RSI above X" → min_rsi: X
 - "above 200 DMA" → above_ma200: true
-- "MACD bullish" → macd_bullish: true"""
+- "above 50 DMA" → above_ma50: true
+- "MACD bullish" → macd_bullish: true
+- "dividend above X%" → min_dividend_yield: X
+
+Example — "IT sector stocks with P/E below 20 and RSI below 45":
+{"max_pe": 20, "min_pe": null, "min_market_cap_cr": null, "max_market_cap_cr": null,
+ "min_dividend_yield": null, "max_debt_to_equity": null, "max_rsi": 45, "min_rsi": null,
+ "above_ma50": null, "above_ma200": null, "macd_bullish": null, "sector": "Technology"}"""
 
 
 class LLMProvider:
@@ -66,10 +78,19 @@ class LLMProvider:
         raise ValueError(f"Unknown provider: {self.provider}")
 
     def _extract_json(self, text: str):
-        """Parse JSON from LLM response, stripping markdown code blocks if present."""
+        """Parse JSON from LLM response.
+
+        Handles: markdown code blocks, JS-style // and /* */ comments
+        (common output from small local models like phi3/mistral).
+        """
+        # Strip markdown code fences
         match = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", text)
         if match:
             text = match.group(1)
+        # Strip JS-style block comments /* ... */
+        text = re.sub(r"/\*[\s\S]*?\*/", "", text)
+        # Strip JS-style single-line comments // ...
+        text = re.sub(r"//[^\n]*", "", text)
         try:
             return json.loads(text.strip())
         except json.JSONDecodeError as exc:
@@ -123,6 +144,7 @@ class LLMProvider:
                     {"role": "user", "content": prompt},
                 ],
                 "stream": False,
+                "options": {"num_predict": 1024},
             },
             timeout=timeout,
         )
