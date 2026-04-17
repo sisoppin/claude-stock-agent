@@ -2,9 +2,7 @@
 
 A conversational AI agent that screens NSE stocks, ranks candidates with AI-generated reasoning, and automatically generates **BUY / SELL / HOLD trading signals** with entry price zones and stop-loss levels — all in ₹.
 
-> **Replace `YOUR_USERNAME`** in the badge URL below before publishing.
-
-![CI](https://github.com/YOUR_USERNAME/stock-market-agent/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/sisoppin/claude-stock-agent/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -33,7 +31,7 @@ A conversational AI agent that screens NSE stocks, ranks candidates with AI-gene
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/stock-market-agent.git
+git clone https://github.com/sisoppin/claude-stock-agent.git
 cd stock-market-agent
 pip install -r requirements.txt
 ```
