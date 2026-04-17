@@ -3,7 +3,8 @@ import sys
 from agent.data import get_multiple_stocks, NSE_UNIVERSE
 from agent.screener import screen_stocks, FilterCriteria
 from agent.llm import LLMProvider
-from agent.reporter import format_report
+from agent.reporter import format_signal_table, format_signal_detail
+from agent.signals import SignalGenerator
 
 
 def run_chat(llm: LLMProvider, tickers: list = None):
@@ -15,6 +16,7 @@ def run_chat(llm: LLMProvider, tickers: list = None):
     print("Type 'quit' to exit\n")
 
     stock_cache = None
+    signal_gen = SignalGenerator(llm)
 
     while True:
         try:
@@ -32,7 +34,6 @@ def run_chat(llm: LLMProvider, tickers: list = None):
         try:
             print("Parsing query...")
             criteria_dict = llm.parse_query(query)
-            # Remove None values and unknown keys so FilterCriteria uses its own defaults
             valid_fields = {f.name for f in dataclasses.fields(FilterCriteria)}
             clean = {k: v for k, v in criteria_dict.items() if v is not None and k in valid_fields}
             criteria = FilterCriteria(**clean)
@@ -49,9 +50,11 @@ def run_chat(llm: LLMProvider, tickers: list = None):
                 print("No stocks matched your criteria. Try relaxing the filters.\n")
                 continue
 
-            print(f"Found {len(matched)} match(es). Ranking with {llm.provider}...")
+            print(f"Found {len(matched)} match(es). Ranking and generating signals with {llm.provider}...")
             ranked = llm.analyze(matched, query)
-            print(format_report(ranked, stock_cache))
+            signals = signal_gen.generate(matched)
+            print(format_signal_table(ranked, signals, stock_cache))
+            print(format_signal_detail(signals))
             print()
 
         except Exception as e:
