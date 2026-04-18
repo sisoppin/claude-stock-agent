@@ -53,21 +53,28 @@ def main():
 
 def _run_batch_signals(llm, refresh: bool = False):
     """Fetch all NSE+BSE stocks and generate signals for each."""
-    universe = fetch_universe(refresh=refresh)
-    print(f"\nBatch Signal Scan — {len(universe)} NSE+BSE stocks")
-    print(f"Provider : {llm.provider}")
-    print("Fetching data (first run ~5 min, cached runs instant)...\n")
+    from agent.progress import StepTracker
+    tracker = StepTracker()
 
+    print(f"\nBatch Signal Scan")
+    print(f"Provider : {llm.provider}")
+
+    tracker.step("Fetching stock universe (NSE+BSE)")
+    universe = fetch_universe(refresh=refresh)
+
+    tracker.step(f"Fetching data for {len(universe)} stocks (cached after first run)")
     stocks = get_multiple_stocks(universe, refresh=refresh)
     stock_data = {s["ticker"]: s for s in stocks}
 
     if not stocks:
+        tracker.done()
         print("No stock data retrieved. Check your internet connection.")
         return
 
-    print(f"Generating signals for {len(stocks)} stocks with {llm.provider}...")
+    tracker.step(f"Generating signals for {len(stocks)} stocks with {llm.provider}")
     gen = SignalGenerator(llm)
     signals = gen.generate(stocks)
+    tracker.done()
 
     date = datetime.date.today().isoformat()
     print(format_batch_signal_report(signals, stock_data, date, llm.provider))

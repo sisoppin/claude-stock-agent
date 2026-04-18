@@ -171,8 +171,20 @@ def get_multiple_stocks(tickers: list, refresh: bool = False) -> list:
         except Exception:
             pass
 
+    done_count = 0
+    total = len(tickers)
+    results = []
+
+    def _fetch_with_progress(ticker):
+        return get_stock_data(ticker)
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-        results = list(executor.map(get_stock_data, tickers))
+        futures = {executor.submit(_fetch_with_progress, t): t for t in tickers}
+        for future in concurrent.futures.as_completed(futures):
+            done_count += 1
+            if done_count % 100 == 0 or done_count == total:
+                print(f"    ↳ fetched {done_count}/{total} stocks", flush=True)
+            results.append(future.result())
 
     stocks = [r for r in results if r is not None]
 
