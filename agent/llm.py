@@ -163,21 +163,31 @@ class LLMProvider:
         model = self.config.get("ollama_model", "llama3")
         timeout = self.config.get("ollama_timeout", 300)
         for attempt in range(2):
-            response = requests.post(
-                f"{url}/api/chat",
-                json={
-                    "model": model,
-                    "messages": [
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": prompt},
-                    ],
-                    "stream": False,
-                    "options": {"num_predict": 4096},
-                },
-                timeout=timeout,
-            )
+            try:
+                response = requests.post(
+                    f"{url}/api/chat",
+                    json={
+                        "model": model,
+                        "messages": [
+                            {"role": "system", "content": system},
+                            {"role": "user", "content": prompt},
+                        ],
+                        "stream": False,
+                        "options": {"num_predict": 4096},
+                    },
+                    timeout=timeout,
+                )
+            except requests.exceptions.ReadTimeout:
+                raise ConnectionError(
+                    f"Ollama timed out after {timeout}s. "
+                    f"Model '{model}' may need more RAM than available. "
+                    f"Try a smaller model (e.g. phi3, llama3.2:1b) in config/config.yaml"
+                )
             response.raise_for_status()
-            content = response.json()["message"]["content"]
+            data = response.json()
+            if "error" in data:
+                raise RuntimeError(f"Ollama error: {data['error']}")
+            content = data["message"]["content"]
             if content.strip():
                 return content
         raise ValueError(f"Ollama ({model}) returned empty response after 2 attempts")
