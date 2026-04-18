@@ -105,6 +105,8 @@ class LLMProvider:
         text = re.sub(r",\s*([}\]])", r"\1", text)
 
         cleaned = text.strip()
+        if not cleaned:
+            raise ValueError("LLM returned empty response")
         try:
             return json.loads(cleaned)
         except json.JSONDecodeError:
@@ -160,21 +162,25 @@ class LLMProvider:
         url = self.config.get("ollama_url", "http://localhost:11434")
         model = self.config.get("ollama_model", "llama3")
         timeout = self.config.get("ollama_timeout", 300)
-        response = requests.post(
-            f"{url}/api/chat",
-            json={
-                "model": model,
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": prompt},
-                ],
-                "stream": False,
-                "options": {"num_predict": 1024},
-            },
-            timeout=timeout,
-        )
-        response.raise_for_status()
-        return response.json()["message"]["content"]
+        for attempt in range(2):
+            response = requests.post(
+                f"{url}/api/chat",
+                json={
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": prompt},
+                    ],
+                    "stream": False,
+                    "options": {"num_predict": 4096},
+                },
+                timeout=timeout,
+            )
+            response.raise_for_status()
+            content = response.json()["message"]["content"]
+            if content.strip():
+                return content
+        raise ValueError(f"Ollama ({model}) returned empty response after 2 attempts")
 
 
 def get_provider(name: str, config: dict) -> LLMProvider:
