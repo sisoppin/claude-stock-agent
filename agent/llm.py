@@ -55,21 +55,29 @@ class LLMProvider:
         elif provider == "openai":
             self._client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
 
-    def analyze(self, stocks: list, query: str) -> list:
+    def analyze(self, stocks: list, query: str, history: list = None) -> list:
         """Rank and explain screened stocks. Returns list of dicts with rank/score/reason."""
-        prompt = f"User query: {query}\n\nStocks:\n{json.dumps(stocks, indent=2, default=str)}"
+        context = ""
+        if history:
+            context = "Recent conversation:\n" + "\n".join(
+                f"{m['role'].title()}: {m['content'][:200]}" for m in history[-6:]
+            ) + "\n\n"
+        prompt = f"{context}User query: {query}\n\nStocks:\n{json.dumps(stocks, indent=2, default=str)}"
         text = self._complete(prompt, ANALYZE_SYSTEM_PROMPT)
         return self._extract_json(text)
 
-    def parse_query(self, query: str) -> dict:
+    def parse_query(self, query: str, history: list = None) -> dict:
         """Translate natural language query into FilterCriteria field dict."""
-        prompt = f'Parse this stock screening query: "{query}"'
+        context = ""
+        if history:
+            context = "Recent conversation (for context only):\n" + "\n".join(
+                f"{m['role'].title()}: {m['content'][:200]}" for m in history[-4:]
+            ) + "\n\n"
+        prompt = f'{context}Parse this stock screening query: "{query}"'
         text = self._complete(prompt, PARSE_SYSTEM_PROMPT)
         try:
             return self._extract_json(text)
         except ValueError:
-            # Small local models sometimes return prose for short/ambiguous queries.
-            # Best-effort: treat the whole query as a name/ticker search.
             return {"ticker_search": query}
 
     def _complete(self, prompt: str, system: str) -> str:
