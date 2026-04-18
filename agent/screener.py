@@ -35,9 +35,13 @@ def _matches(stock: dict, criteria: FilterCriteria) -> bool:
     d_to_e = stock.get("debt_to_equity")
 
     needle = criteria.ticker_search.lower() if criteria.ticker_search else None
+    # Match against ticker, name, and ticker without exchange suffix (e.g. GRSE.BO → grse)
+    ticker_raw = stock.get("ticker", "").lower()
+    ticker_base = ticker_raw.split(".")[0]
+    name_raw = stock.get("name", "").lower()
     checks = [
-        needle is None or needle in stock.get("ticker", "").lower()
-            or needle in stock.get("name", "").lower(),
+        needle is None or needle in ticker_raw
+            or needle in ticker_base or needle in name_raw,
         criteria.max_pe is None or (pe is not None and pe <= criteria.max_pe),
         criteria.min_pe is None or (pe is not None and pe >= criteria.min_pe),
         (criteria.min_market_cap_cr is None

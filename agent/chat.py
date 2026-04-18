@@ -104,6 +104,15 @@ def run_chat(llm: LLMProvider, refresh: bool = False):
             tracker.step(f"Screening {len(stocks)} stocks against filters")
             matched = screen_stocks(stocks, criteria)
 
+            # Fallback: if no match and query looks like a ticker name, try ticker search
+            if not matched and not criteria.ticker_search:
+                words = [w.upper() for w in query.split() if w.isalpha() and len(w) >= 2]
+                for word in words:
+                    fallback = screen_stocks(stocks, FilterCriteria(ticker_search=word))
+                    if fallback:
+                        matched = fallback
+                        break
+
             if not matched:
                 tracker.done()
                 resp = "No stocks matched your criteria. Try relaxing the filters."
@@ -111,6 +120,12 @@ def run_chat(llm: LLMProvider, refresh: bool = False):
                 history.append({"role": "assistant", "content": resp})
                 print()
                 continue
+
+            # Cap results sent to LLM to avoid timeouts
+            MAX_LLM_STOCKS = 20
+            if len(matched) > MAX_LLM_STOCKS:
+                print(f"  ℹ️  {len(matched)} matches found, analyzing top {MAX_LLM_STOCKS}")
+                matched = matched[:MAX_LLM_STOCKS]
 
             tracker.step(f"AI ranking {len(matched)} match(es) with {llm.provider}")
             ranked = llm.analyze(matched, query, history=history)
